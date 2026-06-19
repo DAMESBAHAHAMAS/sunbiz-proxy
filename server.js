@@ -121,7 +121,9 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
       firecrawlResponse.data?.data?.markdown ||
       firecrawlResponse.data?.markdown ||
       "";
-
+console.log("MARKDOWN LENGTH:", markdown.length);
+console.log("MARKDOWN SAMPLE START:");
+console.log(markdown.substring(0, 2000));
     if (!markdown) {
       console.error("[Sunbiz] No markdown returned");
       return res.status(503).json({
