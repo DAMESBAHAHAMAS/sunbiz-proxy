@@ -89,13 +89,7 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
   const encoded = encodeURIComponent(raw.toUpperCase());
 
   const sunbizUrl =
-    `https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?` +
-    `inquiryType=EntityName&` +
-    `inquiryDirectionType=ForwardList&` +
-    `searchNameOrder=&` +
-    `masterFileNumber=&` +
-    `searchTerm=${encoded}&` +
-    `listNameOrder=`;
+  `https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults/EntityName/${encodeURIComponent(raw)}/Page1?searchNameOrder=${encoded}`;
 
   try {
     console.log(`[Sunbiz] Searching: ${raw}`);
