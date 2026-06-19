@@ -299,27 +299,13 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
 
     console.log(`[Sunbiz] Parsed ${matches.length} matches for: ${raw}`);
 
-    const exactMatches  = matches.filter(m => isExactMatch(raw, m.entityName));
-    const closeMatches  = matches.filter(m => isCloseMatch(raw, m.entityName));
-    const activeExact   = exactMatches.filter(m => m.status.toUpperCase().includes("ACTIVE"));
-    const activeClose   = closeMatches.filter(m => m.status.toUpperCase().includes("ACTIVE"));
-
-    let status;
-    if      (activeExact.length > 0)  status = "unavailable";
-    else if (activeClose.length > 0)  status = "likely_taken";
-    else if (exactMatches.length > 0) status = "likely_available";
-    else                               status = "available";
-
     return res.json({
-      name,
-      status,
-      available:    status === "available" || status === "likely_available",
-      exactMatches,
-      closeMatches: activeClose.slice(0, 5),
-      totalResults: matches.length,
-      sunbizUrl,
-      checkedAt:    new Date().toISOString(),
-    });
+  search_term: raw,
+  total_results: matches.length,
+  entities: matches,
+  sunbizUrl,
+  checkedAt: new Date().toISOString()
+});
 
   } catch (err) {
     if (err.code === "ECONNABORTED") {
