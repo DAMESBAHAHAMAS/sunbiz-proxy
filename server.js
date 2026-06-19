@@ -91,15 +91,41 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
     const $       = cheerio.load(response.data);
     const matches = [];
 
-    $("table.searchResultGrid tbody tr").each((i, row) => {
-      const cols = $(row).find("td");
-      if (cols.length >= 3) {
-        const entityName = $(cols[0]).text().trim();
-        const docNumber  = $(cols[1]).text().trim();
-        const status     = $(cols[2]).text().trim();
-        if (entityName) matches.push({ entityName, docNumber, status });
+    // Log the raw HTML for debugging (remove after confirming)
+    const tableHtml = $("table").first().html();
+    console.log("[Sunbiz] Table HTML snippet:", tableHtml ? tableHtml.substring(0, 500) : "NO TABLE FOUND");
+    console.log("[Sunbiz] Full selectors found:", $("table").length, "tables");
+
+    // Try multiple selectors to handle Sunbiz HTML variations
+    const selectors = [
+      "table.searchResultGrid tbody tr",
+      "table.search-results tbody tr",
+      "#search-results table tbody tr",
+      "table tbody tr",
+      "tr"
+    ];
+
+    let rowsFound = false;
+    for (const selector of selectors) {
+      const rows = $(selector);
+      if (rows.length > 0) {
+        console.log(`[Sunbiz] Found ${rows.length} rows with selector: ${selector}`);
+        rows.each((i, row) => {
+          const cols = $(row).find("td");
+          if (cols.length >= 2) {
+            const entityName = $(cols[0]).text().trim();
+            const docNumber  = cols.length >= 2 ? $(cols[1]).text().trim() : "";
+            const status     = cols.length >= 3 ? $(cols[2]).text().trim() : "";
+            if (entityName && entityName.length > 1 && !entityName.toLowerCase().includes("entity name")) {
+              matches.push({ entityName, docNumber, status });
+            }
+          }
+        });
+        if (matches.length > 0) { rowsFound = true; break; }
       }
-    });
+    }
+
+    console.log(`[Sunbiz] Parsed ${matches.length} matches for: ${raw}`);
 
     const exactMatches  = matches.filter(m => isExactMatch(raw, m.entityName));
     const closeMatches  = matches.filter(m => isCloseMatch(raw, m.entityName));
