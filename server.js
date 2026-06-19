@@ -289,7 +289,11 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
             const docNumber  = cols.length >= 2 ? $(cols[1]).text().trim() : "";
             const status     = cols.length >= 3 ? $(cols[2]).text().trim() : "";
             if (entityName && entityName.length > 1 && !entityName.toLowerCase().includes("entity name")) {
-              matches.push({ entityName, docNumber, status });
+              matches.push({
+  corporate_name: entityName,
+  document_number: docNumber,
+  status
+});
             }
           }
         });
