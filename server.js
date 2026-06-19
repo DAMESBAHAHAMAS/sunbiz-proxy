@@ -90,7 +90,7 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
       "https://api.firecrawl.dev/v1/scrape",
       {
         url: sunbizUrl,
-        formats: ["html"],
+        formats: ["markdown"],
         waitFor: 2000,
       },
       {
@@ -102,42 +102,35 @@ app.get("/api/sunbiz/check", limiter, async (req, res) => {
       }
     );
 
-    const html = firecrawlResponse.data?.data?.html || firecrawlResponse.data?.html || "";
+    const markdown = firecrawlResponse.data?.data?.markdown || firecrawlResponse.data?.markdown || "";
 
-    if (!html) {
-      console.error("[Sunbiz] Firecrawl returned no HTML");
+    if (!markdown) {
+      console.error("[Sunbiz] Firecrawl returned no markdown");
       return res.status(503).json({ error: "Unable to retrieve Sunbiz data at this time." });
     }
 
-    console.log(`[Sunbiz] Firecrawl returned ${html.length} bytes of HTML`);
+    console.log(`[Sunbiz] Firecrawl returned ${markdown.length} chars of markdown`);
+    console.log("[Sunbiz] Sample:", markdown.substring(0, 300));
 
-    const $       = cheerio.load(html);
+    // Parse markdown table rows
+    // Format: | Corporate Name | Document Number | Status |
+    const lines = markdown.split("\n");
     const matches = [];
 
-    // Try multiple selectors
-    const selectors = [
-      "table.searchResultGrid tbody tr",
-      "table.search-results tbody tr",
-      "table tbody tr",
-      "tr"
-    ];
-
-    for (const selector of selectors) {
-      const rows = $(selector);
-      if (rows.length > 0) {
-        console.log(`[Sunbiz] Selector "${selector}" found ${rows.length} rows`);
-        rows.each((i, row) => {
-          const cols = $(row).find("td");
-          if (cols.length >= 2) {
-            const entityName = $(cols[0]).text().trim();
-            const docNumber  = cols.length >= 2 ? $(cols[1]).text().trim() : "";
-            const status     = cols.length >= 3 ? $(cols[2]).text().trim() : "";
-            if (entityName && entityName.length > 1 && !entityName.toLowerCase().includes("entity name")) {
-              matches.push({ entityName, docNumber, status });
-            }
-          }
-        });
-        if (matches.length > 0) break;
+    for (const line of lines) {
+      if (!line.startsWith("|")) continue;
+      const cols = line.split("|").map(c => c.trim()).filter(c => c.length > 0);
+      if (cols.length < 3) continue;
+      const entityName = cols[0].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim();
+      const docNumber  = cols[1].trim();
+      const status     = cols[2].trim();
+      if (
+        entityName &&
+        entityName !== "Corporate Name" &&
+        entityName !== "---" &&
+        entityName.length > 1
+      ) {
+        matches.push({ entityName, docNumber, status });
       }
     }
 
